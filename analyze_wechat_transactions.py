@@ -41,4 +41,124 @@ def process_wechat_statement(file_path):
     for month in sorted(df['月份'].unique()):
         month_data = df[df['月份'] == month]
         
-        # 计算收入（交易类型为"收入
+        # 计算收入和支出
+        income = month_data[month_data['收/支/其他'] == '收入']['金额(元)'].sum()
+        expense = month_data[month_data['收/支/其他'] == '支出']['金额(元)'].sum()
+        
+        monthly_stats.append({
+            '月份': month,
+            '收入': income,
+            '支出': expense,
+            '净收入': income - expense
+        })
+    
+    return pd.DataFrame(monthly_stats)
+
+class WeChatAnalyzer(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('微信账单分析器')
+        self.setGeometry(100, 100, 1200, 800)
+        
+        # 创建主窗口部件和布局
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        layout = QVBoxLayout(main_widget)
+        
+        # 创建顶部按钮和标签区域
+        top_layout = QHBoxLayout()
+        self.select_dir_btn = QPushButton('选择文件夹', self)
+        self.select_dir_btn.clicked.connect(self.select_directory)
+        self.status_label = QLabel('请选择包含微信账单Excel文件的文件夹')
+        top_layout.addWidget(self.select_dir_btn)
+        top_layout.addWidget(self.status_label)
+        layout.addLayout(top_layout)
+        
+        # 创建表格
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(['月份', '收入(元)', '支出(元)', '净收入(元)'])
+        layout.addWidget(self.table)
+        
+        # 创建图表
+        self.figure = Figure(figsize=(8, 4))
+        self.canvas = FigureCanvas(self.figure)
+        layout.addWidget(self.canvas)
+        
+        self.final_stats = None
+    
+    def select_directory(self):
+        dir_path = QFileDialog.getExistingDirectory(self, '选择文件夹')
+        if dir_path:
+            try:
+                self.process_directory(dir_path)
+            except Exception as e:
+                self.status_label.setText(f'处理文件时出错：{str(e)}')
+    
+    def process_directory(self, dir_path):
+        excel_files = glob.glob(f'{dir_path}/*.xlsx')
+        if not excel_files:
+            self.status_label.setText('所选文件夹中没有找到Excel文件')
+            return
+        
+        all_stats = []
+        for file in excel_files:
+            try:
+                stats = process_wechat_statement(file)
+                all_stats.append(stats)
+            except Exception as e:
+                self.status_label.setText(f'处理文件 {file} 时出错: {str(e)}')
+                return
+        
+        if all_stats:
+            self.final_stats = pd.concat(all_stats).groupby('月份').sum().reset_index()
+            self.final_stats = self.final_stats.sort_values('月份')
+            self.update_table()
+            self.update_chart()
+            self.status_label.setText('数据处理完成')
+    
+    def update_table(self):
+        if self.final_stats is None:
+            return
+        
+        self.table.setRowCount(len(self.final_stats))
+        for i, row in self.final_stats.iterrows():
+            self.table.setItem(i, 0, QTableWidgetItem(str(row['月份'])))
+            self.table.setItem(i, 1, QTableWidgetItem(f'¥{row["收入"]:,.2f}'))
+            self.table.setItem(i, 2, QTableWidgetItem(f'¥{row["支出"]:,.2f}'))
+            self.table.setItem(i, 3, QTableWidgetItem(f'¥{row["净收入"]:,.2f}'))
+        
+        self.table.resizeColumnsToContents()
+    
+    def update_chart(self):
+        if self.final_stats is None:
+            return
+        
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        
+        months = self.final_stats['月份']
+        ax.plot(months, self.final_stats['收入'], label='收入', marker='o')
+        ax.plot(months, self.final_stats['支出'], label='支出', marker='o')
+        ax.plot(months, self.final_stats['净收入'], label='净收入', marker='o')
+        
+        ax.set_title('月度收支趋势')
+        ax.set_xlabel('月份')
+        ax.set_ylabel('金额(元)')
+        ax.legend()
+        ax.grid(True)
+        
+        # 旋转x轴标签以防重叠
+        plt.xticks(rotation=45)
+        
+        self.figure.tight_layout()
+        self.canvas.draw()
+
+def main():
+    app = QApplication(sys.argv)
+    window = WeChatAnalyzer()
+    window.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

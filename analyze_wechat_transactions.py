@@ -10,6 +10,14 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+# 设置matplotlib中文字体
+import platform
+if platform.system() == 'Windows':
+    plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # Windows系统使用微软雅黑字体
+else:
+    plt.rcParams['font.sans-serif'] = ['PingFang SC']  # macOS系统可用的中文字体
+plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+
 def process_wechat_statement(file_path):
     # 读取Excel文件
     df = pd.read_excel(file_path)
@@ -142,10 +150,12 @@ class WeChatAnalyzer(QMainWindow):
         ax.plot(months, self.final_stats['支出'], label='支出', marker='o')
         ax.plot(months, self.final_stats['净收入'], label='净收入', marker='o')
         
-        ax.set_title('月度收支趋势')
-        ax.set_xlabel('月份')
-        ax.set_ylabel('金额(元)')
-        ax.legend()
+        # 设置字体属性
+        font_properties = {'family': plt.rcParams['font.sans-serif'][0]}
+        ax.set_title('月度收支趋势', fontdict=font_properties)
+        ax.set_xlabel('月份', fontdict=font_properties)
+        ax.set_ylabel('金额(元)', fontdict=font_properties)
+        ax.legend(prop=font_properties)
         ax.grid(True)
         
         # 旋转x轴标签以防重叠

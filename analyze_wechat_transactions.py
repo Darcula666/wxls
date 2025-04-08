@@ -1,10 +1,11 @@
 import sys
+import os
 import pandas as pd
 from datetime import datetime
 import glob
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout,
                              QWidget, QFileDialog, QTableWidget, QTableWidgetItem,
-                             QLabel, QHBoxLayout)
+                             QLabel, QHBoxLayout, QProgressBar)
 from PyQt6.QtCore import Qt
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -15,7 +16,7 @@ import platform
 if platform.system() == 'Windows':
     plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # Windows系统使用微软雅黑字体
 else:
-    plt.rcParams['font.sans-serif'] = ['PingFang SC']  # macOS系统可用的中文字体
+    plt.rcParams['font.sans-serif'] = ['Hiragino Sans GB', 'Apple LiGothic Medium']  # macOS系统使用苹果系统字体
 plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
 def process_wechat_statement(file_path):
@@ -82,6 +83,11 @@ class WeChatAnalyzer(QMainWindow):
         top_layout.addWidget(self.status_label)
         layout.addLayout(top_layout)
         
+        # 创建进度条
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        layout.addWidget(self.progress_bar)
+        
         # 创建表格
         self.table = QTableWidget()
         self.table.setColumnCount(4)
@@ -109,13 +115,25 @@ class WeChatAnalyzer(QMainWindow):
             self.status_label.setText('所选文件夹中没有找到Excel文件')
             return
         
+        # 显示进度条并设置初始值
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(len(excel_files))
+        self.progress_bar.setValue(0)
+        
         all_stats = []
-        for file in excel_files:
+        for i, file in enumerate(excel_files, 1):
             try:
+                # 更新状态标签显示当前处理的文件
+                self.status_label.setText(f'正在处理: {os.path.basename(file)}')
                 stats = process_wechat_statement(file)
                 all_stats.append(stats)
+                # 更新进度条
+                self.progress_bar.setValue(i)
+                QApplication.processEvents()  # 确保UI更新
             except Exception as e:
                 self.status_label.setText(f'处理文件 {file} 时出错: {str(e)}')
+                self.progress_bar.setVisible(False)
                 return
         
         if all_stats:
@@ -124,6 +142,7 @@ class WeChatAnalyzer(QMainWindow):
             self.update_table()
             self.update_chart()
             self.status_label.setText('数据处理完成')
+            self.progress_bar.setVisible(False)  # 处理完成后隐藏进度条
     
     def update_table(self):
         if self.final_stats is None:

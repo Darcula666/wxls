@@ -1,15 +1,11 @@
 import sys
 import os
 import pandas as pd
-from datetime import datetime
 import glob
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout,
                              QWidget, QFileDialog, QTableWidget, QTableWidgetItem,
                              QLabel, QHBoxLayout, QProgressBar)
-from PyQt6.QtCore import Qt
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
 
 # 设置matplotlib中文字体
 import platform
@@ -95,9 +91,9 @@ class WeChatAnalyzer(QMainWindow):
         layout.addWidget(self.table)
         
         # 创建图表
-        self.figure = Figure(figsize=(8, 4))
-        self.canvas = FigureCanvas(self.figure)
-        layout.addWidget(self.canvas)
+        # self.figure = Figure(figsize=(8, 4))
+        # self.canvas = FigureCanvas(self.figure)
+        # layout.addWidget(self.canvas)
         
         self.final_stats = None
     
@@ -148,12 +144,38 @@ class WeChatAnalyzer(QMainWindow):
         if self.final_stats is None:
             return
         
-        self.table.setRowCount(len(self.final_stats))
+        # 计算合计和平均值
+        total_income = self.final_stats['收入'].sum()
+        total_expense = self.final_stats['支出'].sum()
+        total_net = self.final_stats['净收入'].sum()
+        
+        avg_income = self.final_stats['收入'].mean()
+        avg_expense = self.final_stats['支出'].mean()
+        avg_net = self.final_stats['净收入'].mean()
+        
+        # 设置表格行数（原数据行数 + 2行用于显示合计和平均值）
+        self.table.setRowCount(len(self.final_stats) + 2)
+        
+        # 填充数据行
         for i, row in self.final_stats.iterrows():
             self.table.setItem(i, 0, QTableWidgetItem(str(row['月份'])))
             self.table.setItem(i, 1, QTableWidgetItem(f'¥{row["收入"]:,.2f}'))
             self.table.setItem(i, 2, QTableWidgetItem(f'¥{row["支出"]:,.2f}'))
             self.table.setItem(i, 3, QTableWidgetItem(f'¥{row["净收入"]:,.2f}'))
+        
+        # 添加合计行
+        total_row = len(self.final_stats)
+        self.table.setItem(total_row, 0, QTableWidgetItem('合计'))
+        self.table.setItem(total_row, 1, QTableWidgetItem(f'¥{total_income:,.2f}'))
+        self.table.setItem(total_row, 2, QTableWidgetItem(f'¥{total_expense:,.2f}'))
+        self.table.setItem(total_row, 3, QTableWidgetItem(f'¥{total_net:,.2f}'))
+        
+        # 添加平均值行
+        avg_row = len(self.final_stats) + 1
+        self.table.setItem(avg_row, 0, QTableWidgetItem('平均值'))
+        self.table.setItem(avg_row, 1, QTableWidgetItem(f'¥{avg_income:,.2f}'))
+        self.table.setItem(avg_row, 2, QTableWidgetItem(f'¥{avg_expense:,.2f}'))
+        self.table.setItem(avg_row, 3, QTableWidgetItem(f'¥{avg_net:,.2f}'))
         
         self.table.resizeColumnsToContents()
     

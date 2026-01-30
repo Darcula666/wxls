@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-一键打包脚本 - 支持 macOS、Windows、Linux
+Build script - Support macOS, Windows, Linux
 
-用法:
-    python build.py              # 打包当前平台
-    python build.py macos        # 打包 macOS
-    python build.py windows      # 打包 Windows
-    python build.py linux        # 打包 Linux
-    python build.py ci           # 生成 GitHub Actions 工作流
-
-示例:
-    python build.py macos        # 打包 macOS
-    python build.py windows      # 打包 Windows
+Usage:
+    python build.py              # Build for current platform
+    python build.py macos        # Build macOS
+    python build.py windows      # Build Windows
+    python build.py linux        # Build Linux
+    python build.py ci           # Generate GitHub Actions workflow
 """
 
 import subprocess
@@ -27,7 +23,7 @@ ICON_FILE = "icon.ico"
 
 
 def get_platform():
-    """获取当前平台"""
+    """Get current platform"""
     if sys.platform == "darwin":
         return "macos"
     elif sys.platform == "win32":
@@ -39,31 +35,31 @@ def get_platform():
 
 
 def clean_build():
-    """清理构建目录"""
+    """Clean build directories"""
     dirs_to_clean = ["build", "dist"]
     for d in dirs_to_clean:
         if os.path.exists(d):
-            print(f"清理目录: {d}")
+            print(f"Cleaning directory: {d}")
             shutil.rmtree(d)
 
 
 def get_icon_cmd():
-    """获取图标参数"""
+    """Get icon parameter"""
     if os.path.exists(ICON_FILE):
         return ["-i", ICON_FILE]
     return []
 
 
 def build_macos():
-    """打包 macOS (.app)"""
-    print("\n=== 打包 macOS ===")
+    """Build macOS (.app)"""
+    print("\n=== Building macOS ===")
 
     clean_build()
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "-F",           # 单文件
-        "-w",           # 无控制台窗口
+        "-F",           # Single file
+        "-w",           # No console window
         "--osx-bundle-identifier", "com.wxls.analyzer",
     ]
     cmd.extend(get_icon_cmd())
@@ -73,23 +69,23 @@ def build_macos():
     if result.returncode == 0:
         exe_path = f"dist/{APP_NAME}"
         if os.path.exists(exe_path):
-            print(f"✓ macOS 打包成功: {exe_path}")
+            print(f"[OK] macOS build success: {exe_path}")
     else:
-        print("✗ macOS 打包失败")
+        print("[FAIL] macOS build failed")
         return False
     return True
 
 
 def build_windows():
-    """打包 Windows"""
-    print("\n=== 打包 Windows ===")
+    """Build Windows"""
+    print("\n=== Building Windows ===")
 
     clean_build()
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "-F",           # 单文件
-        "-w",           # 无控制台窗口
+        "-F",           # Single file
+        "-w",           # No console window
     ]
     cmd.extend(get_icon_cmd())
     cmd.extend(["--clean", PYTHON_FILE])
@@ -98,25 +94,25 @@ def build_windows():
     if result.returncode == 0:
         exe_path = f"dist/{APP_NAME}.exe"
         if os.path.exists(exe_path):
-            print(f"✓ Windows 打包成功: {exe_path}")
+            print(f"[OK] Windows build success: {exe_path}")
         else:
-            print("✓ 打包完成（请检查 dist 目录）")
+            print("[OK] Build completed (check dist directory)")
     else:
-        print("✗ Windows 打包失败")
+        print("[FAIL] Windows build failed")
         return False
     return True
 
 
 def build_linux():
-    """打包 Linux"""
-    print("\n=== 打包 Linux ===")
+    """Build Linux"""
+    print("\n=== Building Linux ===")
 
     clean_build()
 
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "-F",           # 单文件
-        "-w",           # 无控制台窗口
+        "-F",           # Single file
+        "-w",           # No console window
     ]
     cmd.extend(get_icon_cmd())
     cmd.extend(["--clean", PYTHON_FILE])
@@ -125,15 +121,15 @@ def build_linux():
     if result.returncode == 0:
         exe_path = f"dist/{APP_NAME}"
         if os.path.exists(exe_path):
-            print(f"✓ Linux 打包成功: {exe_path}")
+            print(f"[OK] Linux build success: {exe_path}")
     else:
-        print("✗ Linux 打包失败")
+        print("[FAIL] Linux build failed")
         return False
     return True
 
 
 def generate_github_workflow():
-    """生成 GitHub Actions 工作流文件"""
+    """Generate GitHub Actions workflow file"""
     workflow_dir = ".github/workflows"
     os.makedirs(workflow_dir, exist_ok=True)
 
@@ -193,20 +189,20 @@ jobs:
     with open(workflow_path, "w", encoding="utf-8") as f:
         f.write(workflow)
 
-    print(f"✓ GitHub Actions 工作流已生成: {workflow_path}")
+    print(f"[OK] GitHub Actions workflow generated: {workflow_path}")
     return True
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="一键打包脚本 - 支持 macOS、Windows、Linux"
+        description="Build script - Support macOS, Windows, Linux"
     )
     parser.add_argument(
         "platform",
         nargs="?",
         choices=["macos", "windows", "linux", "ci"],
         default=get_platform(),
-        help="指定打包平台 (默认: 当前平台)",
+        help="Target platform (default: current platform)",
     )
 
     args = parser.parse_args()
@@ -220,7 +216,7 @@ def main():
     elif args.platform == "linux":
         build_linux()
     else:
-        print(f"不支持的平台: {args.platform}")
+        print(f"Unsupported platform: {args.platform}")
 
 
 if __name__ == "__main__":
